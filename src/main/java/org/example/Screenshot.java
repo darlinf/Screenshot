@@ -4,7 +4,6 @@ import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,6 +20,11 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Timer;
 import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+
 
 public class Screenshot {
 
@@ -33,10 +37,14 @@ public class Screenshot {
     private ArrayList<JButton> editButtonList, deleteButtonList;
     private JPanel panel;
 
-    private final String imagePathDirectory = "file/image/";
-    private final String wordPathDirectory = "file/word/";
+    private final String imagePathDirectory = System.getProperty("user.home") + "/Desktop/evidence_files/file/image/";
+    private final String wordPathDirectory =  System.getProperty("user.home") + "/Desktop/evidence_files/file/word/";
+    private final String finalFilePathDirectory =  System.getProperty("user.home") + "/Desktop/evidence_files/file/final files/";
+
 
     public Screenshot() {
+        createInitialDirectory();
+
         panel = new JPanel(new BorderLayout());
 
         frame = new JFrame("Todo List");
@@ -72,21 +80,19 @@ public class Screenshot {
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         JButton button = new JButton("Take Screenshot");
-        button.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                String pathImage = takeScreenshot();
-                InitializeShowImage(pathImage);
+        button.addActionListener(e -> {
+            String pathImage = takeScreenshot();
+            InitializeShowImage(pathImage);
 
-                Timer timer = new Timer();
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        System.out.println("Hello, world!");
-                        JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
-                        verticalScrollBar.setValue(verticalScrollBar.getMaximum());
-                    }
-                }, 200);
-            }
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    System.out.println("Hello, world!");
+                    JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+                    verticalScrollBar.setValue(verticalScrollBar.getMaximum());
+                }
+            }, 200);
         });
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -109,15 +115,36 @@ public class Screenshot {
 
     public static void main(String[] args) {
         Screenshot app = new Screenshot();
-
-
     }
 
     private class buttonCreateWord implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (!inputField.getText().equals("")){
-                saveWordFile(inputField.getText()+".doc");
+                String directoryName = inputField.getText();
+                saveWordFile(directoryName+".doc");
+
+                createDirectory(finalFilePathDirectory+directoryName);
+
+                File directory = new File(imagePathDirectory);
+                String[] fileList = directory.list();
+                if (fileList != null) {
+                    for (String fileName : fileList) {
+                        copyFiles(fileName,directoryName);
+                    }
+                }
+
+                int size = deleteButtonList.size();
+                for (int i = 0; i < size; i++) {
+                    arrayListString.remove(0);
+                    deleteButtonList.remove(0);
+
+                    listPanel.remove(0);
+                    listPanel.revalidate();
+                    listPanel.repaint();
+                }
+
+                deleteAllFile(imagePathDirectory);
             }
         }
     }
@@ -182,7 +209,7 @@ public class Screenshot {
         }
     }
 
-    private static void deleteFile(String filePath){
+    private static void deleteFile(String filePath){System.out.println(filePath);
         // create the file object
         File file = new File(filePath);
 
@@ -197,20 +224,40 @@ public class Screenshot {
             System.out.println("File does not exist.");
         }
     }
+
+    private static void deleteAllFile(String directoryPath){
+        //String directoryPath = "/path/to/directory";
+
+        File directory = new File(directoryPath);
+
+        // Check if directory exists
+        if (!directory.exists()) {
+            System.out.println("Directory does not exist.");
+            return;
+        }
+
+        // Check if directory is a directory
+        if (!directory.isDirectory()) {
+            System.out.println("Path is not a directory.");
+            return;
+        }
+
+        // Get all files in directory
+        File[] files = directory.listFiles();
+
+        // Iterate over all files and delete them
+        for (File file : files) {
+            if (file.isFile()) {
+                if (file.delete()) {
+                    System.out.println("File deleted successfully: " + file.getAbsolutePath());
+                } else {
+                    System.out.println("Failed to delete file: " + file.getAbsolutePath());
+                }
+            }
+        }
+    }
     
     private String takeScreenshot (){
-        LocalDate currentDate2 = LocalDate.now();
-        System.out.println("Current date: " + currentDate2);
-        // get the current time
-        LocalTime currentTime = LocalTime.now();
-        // create a DateTimeFormatter object that omits the fractional seconds field
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-
-        // format the current time using the formatter
-        String formattedTime = currentTime.format(formatter);
-
-        System.out.println("Current time: " + formattedTime);
-
         try {
             // create a new Robot instance
             Robot robot = new Robot();
@@ -224,7 +271,9 @@ public class Screenshot {
             // save the screenshot as a PNG file
             String dateTime = LocalDate.now()+"_"+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             dateTime = dateTime.replace(":", "-");
-            String imagePath = imagePathDirectory + "screenshot_"+dateTime+".png";
+            String randomNumber = String.format("%04d", new Random().nextInt(10000));
+
+            String imagePath = imagePathDirectory + "screenshot_"+dateTime+"_"+randomNumber+"_"+".png";
             File output = new File(imagePath);
             ImageIO.write(screenshot, "png", output);
             System.out.println("Screenshot saved successfully!");
@@ -233,7 +282,6 @@ public class Screenshot {
         }catch (Exception e){
 
         }
-
         return "";
     }
 
@@ -247,7 +295,7 @@ public class Screenshot {
 
             File directory = new File(imagePathDirectory);
             String[] fileList = directory.list();
-            Collections.reverse(Arrays.asList(fileList));
+           // Collections.reverse(Arrays.asList(fileList));
 
             if (fileList != null) {
                 for (String fileName : fileList) {
@@ -257,6 +305,7 @@ public class Screenshot {
                     int format = XWPFDocument.PICTURE_TYPE_PNG;
                     FileInputStream inputStream = new FileInputStream(new File(imagePath));
                     run.addPicture(inputStream, format, fileName, Units.toEMU(475), Units.toEMU(275)); // adjust size as needed
+                    inputStream.close();
                 }
             }
 
@@ -269,6 +318,50 @@ public class Screenshot {
             System.out.println("Document saved successfully!");
         }catch (Exception e){
 
+        }
+    }
+
+    private void copyFiles(String fileName, String directoryName){
+        Path sourceFile = Paths.get(imagePathDirectory+fileName);
+        Path destinationFile = Paths.get(finalFilePathDirectory+directoryName+"/"+fileName);
+
+        try {
+            Files.copy(sourceFile, destinationFile);
+            System.out.println("File copied successfully!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createDirectory(String directoryPath) {
+        // create a File object
+        File directory = new File(directoryPath);
+
+        // create the directory
+        boolean success = directory.mkdir();
+
+        if (success) {
+            System.out.println("Directory created successfully.");
+        } else {
+            System.out.println("Failed to create directory.");
+        }
+    }
+
+    private  void createInitialDirectory(){
+        String desktopPath = System.getProperty("user.home") + "/Desktop";
+        File directory = new File(desktopPath+"/evidence_files");
+
+        if (directory.exists()) {
+            System.out.println("Directory exists!");
+
+        } else {
+            System.out.println("Directory does not exist.");
+
+            createDirectory(desktopPath+"/evidence_files");
+            createDirectory(desktopPath+"/evidence_files/file");
+            createDirectory(desktopPath+"/evidence_files/file/image");
+            createDirectory(desktopPath+"/evidence_files/file/word");
+            createDirectory(desktopPath+"/evidence_files/file/final files");
         }
     }
 }
